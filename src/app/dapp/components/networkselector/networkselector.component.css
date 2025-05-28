@@ -1,0 +1,32 @@
+.network-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.label {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.current-network {
+  min-width: 80px;
+  text-align: center;
+}
+
+.network-dropdown {
+  width: 180px;
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+  .network-selector {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .network-dropdown {
+    width: 100%;
+    margin-top: 8px;
+  }
+}

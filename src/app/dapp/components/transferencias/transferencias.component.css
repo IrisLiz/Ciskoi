@@ -1,0 +1,126 @@
+.container {
+  padding: 24px;
+}
+
+.wallet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.wallet-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.wallet-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f5f5f5;
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.wallet-not-connected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #999;
+}
+
+.contacts-list {
+  margin-top: 12px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.contact-avatar {
+  margin-right: 12px;
+}
+
+.contact-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.contact-name {
+  font-weight: 500;
+}
+
+.contact-address {
+  font-size: 12px;
+  color: #999;
+}
+
+.no-contacts {
+  color: #999;
+  font-style: italic;
+  padding: 12px 0;
+}
+
+.transfer-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.transfer-mode-toggle span {
+  color: #999;
+}
+
+.transfer-mode-toggle span.active {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.contract-info {
+  margin-bottom: 16px;
+}
+
+.transaction-options {
+  margin: 16px 0;
+  background-color: #f9f9f9;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.transaction-options ul {
+  padding-left: 20px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.transaction-options li {
+  margin-bottom: 6px;
+}
+
+.transaction-options li:last-child {
+  margin-bottom: 0;
+}

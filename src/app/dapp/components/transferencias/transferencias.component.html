@@ -1,0 +1,231 @@
+<div class="container">
+  <div nz-row [nzGutter]="24">
+    <div nz-col [nzXs]="24" [nzMd]="16">
+      <nz-card>
+        <div class="wallet-header">
+          <h2 nz-typography>Transferencias de ETH</h2>
+          <!-- Status de conexión -->
+          <div class="wallet-status">
+            <ng-container *ngIf="isWalletConnected(); else notConnected">
+              <div class="wallet-address">
+                <nz-avatar [nzShape]="'square'" [nzSize]="28">
+                  <i nz-icon nzType="wallet" nzTheme="outline"></i>
+                </nz-avatar>
+                <span>{{ formatAddress(walletAddress) }}</span>
+                <button nz-button nzType="default" nzSize="small" nzShape="circle" (click)="disconnectWallet()"
+                  nzTooltip="Desconectar">
+                  <i nz-icon nzType="logout" nzTheme="outline"></i>
+                </button>
+              </div>
+              <div nzTooltip="Balance de tu wallet">
+                {{ accountBalance | number:'1.4-4' }} ETH
+              </div>
+            </ng-container>
+
+            <ng-template #notConnected>
+              <button nz-button nzType="primary" [nzLoading]="isLoading" (click)="connectWallet()">
+                <i nz-icon nzType="wallet" nzTheme="outline"></i> Conectar Wallet
+              </button>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- Mensaje de error si existe -->
+        <nz-alert *ngIf="errorMessage" [nzType]="'error'" [nzMessage]="errorMessage" [nzShowIcon]="true"
+          class="mb-4"></nz-alert>
+
+        <!-- Configuración del contrato -->
+        <div *ngIf="isWalletConnected()" class="contract-config mb-4">
+          <div class="contract-status">
+            <h4>Estado del Contrato</h4>
+            <div class="status-row">
+              <span>Estado: </span>
+              <nz-tag [nzColor]="isContractConfigured ? 'green' : 'orange'">
+                {{ getContractStatus() }}
+              </nz-tag>
+              <ng-container *ngIf="isContractConfigured">
+                <span class="contract-address-display">
+                  {{ formatAddress(contractAddress) }}
+                </span>
+                <button nz-button nzType="link" nzSize="small" (click)="removeContract()" nzDanger>
+                  <i nz-icon nzType="delete" nzTheme="outline"></i> Eliminar
+                </button>
+              </ng-container>
+            </div>
+            <button nz-button nzType="dashed" nzSize="small" (click)="showContractModal()">
+              <i nz-icon nzType="setting" nzTheme="outline"></i>
+              {{ isContractConfigured ? 'Cambiar Contrato' : 'Configurar Contrato' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Formulario de transferencia -->
+        <form [formGroup]="transferForm" (ngSubmit)="sendTransaction()" *ngIf="isWalletConnected()">
+          <!-- Toggle para seleccionar modo de envío -->
+          <div class="transfer-mode-toggle">
+            <span [class.active]="useContract">Usar Contrato</span>
+            <nz-switch 
+              [(ngModel)]="useContract" 
+              [ngModelOptions]="{standalone: true}"
+              [nzDisabled]="!isContractConfigured"
+              (ngModelChange)="toggleUseContract()">
+            </nz-switch>
+            <span [class.active]="!useContract">Envío Directo</span>
+          </div>
+
+          <!-- Información del balance de contrato si está usando el contrato -->
+          <div *ngIf="useContract && isContractConfigured" class="contract-info">
+            <nz-spin [nzSpinning]="isContractDataLoading">
+              <nz-alert nzType="info"
+                [nzMessage]="'Balance del contrato: ' + (contractBalance | number:'1.4-4') + ' ETH'"
+                [nzShowIcon]="true"></nz-alert>
+            </nz-spin>
+          </div>
+
+          <!-- Alerta si quiere usar contrato pero no está configurado -->
+          <div *ngIf="useContract && !isContractConfigured" class="contract-warning">
+            <nz-alert nzType="warning"
+              nzMessage="Para usar el modo contrato, primero debes configurar la dirección del contrato"
+              [nzShowIcon]="true"></nz-alert>
+          </div>
+
+          <nz-form-item>
+            <nz-form-label [nzSpan]="24">Destinatario</nz-form-label>
+            <nz-form-control [nzErrorTip]="'Ingrese una dirección de Ethereum válida'">
+              <nz-input-group [nzAddOnBefore]="contactsTemplate">
+                <input type="text" nz-input formControlName="recipient" placeholder="0x..." />
+              </nz-input-group>
+              <ng-template #contactsTemplate>
+                <nz-select [ngModel]="selectedContact" (ngModelChange)="selectContact($event)"
+                  [ngModelOptions]="{standalone: true}" [nzPlaceHolder]="'Contactos'" style="width: 120px;">
+                  <nz-option *ngFor="let contact of contacts" [nzValue]="contact.walletAddress"
+                    [nzLabel]="contact.name"></nz-option>
+                </nz-select>
+              </ng-template>
+            </nz-form-control>
+          </nz-form-item>
+
+          <nz-form-item>
+            <nz-form-label [nzSpan]="24">Cantidad (ETH)</nz-form-label>
+            <nz-form-control [nzErrorTip]="'Ingrese una cantidad válida mayor a 0.000001'">
+              <nz-input-group [nzAddOnAfter]="'ETH'">
+                <input type="number" nz-input formControlName="amount" placeholder="0.01" [min]="0.000001"
+                  [step]="0.001" />
+              </nz-input-group>
+            </nz-form-control>
+          </nz-form-item>
+
+          <!-- Campo de descripción solo visible cuando se usa el contrato -->
+          <nz-form-item *ngIf="useContract && isContractConfigured">
+            <nz-form-label [nzSpan]="24">Descripción</nz-form-label>
+            <nz-form-control [nzErrorTip]="'Máximo 100 caracteres'">
+              <input type="text" nz-input formControlName="description" placeholder="Descripción de la transferencia" />
+            </nz-form-control>
+          </nz-form-item>
+
+          <div class="form-buttons">
+            <button nz-button [nzType]="'primary'" 
+              [disabled]="!transferForm.valid || (useContract && !isContractConfigured)" 
+              [nzLoading]="isSendingTransfer">
+              <i nz-icon nzType="send" nzTheme="outline"></i>
+              {{ useContract ? 'Enviar vía Contrato' : 'Enviar Directamente' }}
+            </button>
+
+            <button nz-button nzType="default" type="button" (click)="refreshWalletData()"
+              [nzLoading]="isContractDataLoading">
+              <i nz-icon nzType="reload" nzTheme="outline"></i> Actualizar
+            </button>
+          </div>
+        </form>
+
+        <!-- Panel informativo cuando no está conectado -->
+        <div *ngIf="!isWalletConnected()" class="wallet-not-connected">
+          <i nz-icon nzType="wallet" nzTheme="outline" style="font-size: 48px;"></i>
+          <p>Conecta tu wallet para realizar transferencias</p>
+        </div>
+      </nz-card>
+    </div>
+
+    <!-- Panel lateral con información adicional -->
+    <div nz-col [nzXs]="24" [nzMd]="8">
+      <nz-card>
+        <h3 nz-typography>Información</h3>
+        <p>Desde esta pantalla puedes realizar transferencias de ETH a cualquier dirección de Ethereum.</p>
+
+        <div *ngIf="isWalletConnected()" class="transaction-options">
+          <h4>Opciones de transferencia:</h4>
+          <ul>
+            <li><strong>Modo contrato:</strong> Utiliza tu contrato inteligente personalizado para enviar ETH.</li>
+            <li><strong>Modo directo:</strong> Envía ETH directamente desde tu wallet.</li>
+          </ul>
+
+          <!-- Información del límite diario si está configurado -->
+          <div *ngIf="useContract && isContractConfigured && dailyLimit > 0" class="daily-limit-info">
+            <h4>Límite Diario</h4>
+            <div class="limit-progress">
+              <span>Gastado: {{ dailySpent | number:'1.4-4' }} ETH</span>
+              <span>Límite: {{ dailyLimit | number:'1.4-4' }} ETH</span>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="getDailyLimitPercentage()"></div>
+              </div>
+              <span class="percentage">{{ getDailyLimitPercentage() | number:'1.0-0' }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <nz-divider></nz-divider>
+
+        <h4 nz-typography>Contactos recientes</h4>
+        <div class="contacts-list">
+          <div *ngFor="let contact of contacts.slice(0, 5)" class="contact-item">
+            <div class="contact-avatar">
+              <nz-avatar [nzText]="contact.name.charAt(0)" [nzSize]="32" [nzShape]="'circle'"></nz-avatar>
+            </div>
+            <div class="contact-info">
+              <span class="contact-name">{{ contact.name }}</span>
+              <span class="contact-address">{{ formatAddress(contact.walletAddress) }}</span>
+            </div>
+            <button nz-button nzType="link" nzSize="small" (click)="selectContact(contact.walletAddress)">
+              <i nz-icon nzType="user" nzTheme="outline"></i>
+            </button>
+          </div>
+
+          <div *ngIf="contacts.length === 0" class="no-contacts">
+            No hay contactos guardados
+          </div>
+        </div>
+      </nz-card>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal para configurar dirección del contrato -->
+<nz-modal 
+  [(nzVisible)]="isContractModalVisible" 
+  nzTitle="Configurar Contrato" 
+  [nzOkText]="'Probar Contrato'"
+  [nzCancelText]="'Cancelar'"
+  [nzOkLoading]="isTestingContract"
+  (nzOnOk)="testContract()" 
+  (nzOnCancel)="hideContractModal()">
+  
+  <ng-container *nzModalContent>
+    <p>Ingresa la dirección del contrato inteligente que deseas usar para las transferencias:</p>
+    
+    <form [formGroup]="contractAddressForm" nz-form>
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24">Dirección del Contrato</nz-form-label>
+        <nz-form-control [nzErrorTip]="'Ingrese una dirección de contrato válida'">
+          <input type="text" nz-input formControlName="address" placeholder="0x..." />
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+    
+    <nz-alert 
+      nzType="info" 
+      nzMessage="Asegúrate de que la dirección corresponda a un contrato válido que permita transferencias de ETH."
+      [nzShowIcon]="true">
+    </nz-alert>
+  </ng-container>
+</nz-modal>
